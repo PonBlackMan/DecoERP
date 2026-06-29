@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DecoERP.Api/DecoERP.Api.csproj" />
+    <Project Path="src/DecoERP.Application/DecoERP.Application.csproj" />
+    <Project Path="src/DecoERP.Domain/DecoERP.Domain.csproj" />
+    <Project Path="src/DecoERP.Infrastructure/DecoERP.Infrastructure.csproj" />
+  </Folder>
+</Solution>

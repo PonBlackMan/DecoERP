@@ -1,0 +1,20 @@
+# .NET
+backend/src/**/bin/
+backend/src/**/obj/
+backend/**/*.user
+*.suo
+.vs/
+*.swp
+
+# Next.js
+frontend/web/.next/
+frontend/web/node_modules/
+frontend/web/.env.local
+
+# Secrets
+appsettings.Production.json
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
