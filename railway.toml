@@ -1,0 +1,12 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+startCommand = "dotnet DecoERP.Api.dll"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[environments.production.variables]
+ASPNETCORE_ENVIRONMENT = "Production"
+ASPNETCORE_URLS = "http://+:8080"

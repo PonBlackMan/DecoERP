@@ -1,13 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY ["src/DecoERP.Api/DecoERP.Api.csproj", "src/DecoERP.Api/"]
-COPY ["src/DecoERP.Application/DecoERP.Application.csproj", "src/DecoERP.Application/"]
-COPY ["src/DecoERP.Domain/DecoERP.Domain.csproj", "src/DecoERP.Domain/"]
-COPY ["src/DecoERP.Infrastructure/DecoERP.Infrastructure.csproj", "src/DecoERP.Infrastructure/"]
+COPY ["backend/src/DecoERP.Api/DecoERP.Api.csproj", "src/DecoERP.Api/"]
+COPY ["backend/src/DecoERP.Application/DecoERP.Application.csproj", "src/DecoERP.Application/"]
+COPY ["backend/src/DecoERP.Domain/DecoERP.Domain.csproj", "src/DecoERP.Domain/"]
+COPY ["backend/src/DecoERP.Infrastructure/DecoERP.Infrastructure.csproj", "src/DecoERP.Infrastructure/"]
 RUN dotnet restore "src/DecoERP.Api/DecoERP.Api.csproj"
 
-COPY . .
+COPY backend/ .
 RUN dotnet publish "src/DecoERP.Api/DecoERP.Api.csproj" -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
