@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { LogOut } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -34,25 +33,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <aside className="flex w-60 flex-col border-r bg-card">
-        <div className="flex h-14 items-center border-b px-4">
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
-            <span className="text-primary">Deco</span>ERP
+      <aside className="flex w-60 flex-col bg-sidebar text-sidebar-foreground">
+        <div className="flex h-14 items-center border-b border-sidebar-border px-4">
+          <Link href="/dashboard" className="flex items-center gap-0.5 font-bold text-lg tracking-tight">
+            <span className="text-sidebar-primary">Deco</span>
+            <span className="text-sidebar-foreground">ERP</span>
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto py-3">
           <SidebarNav />
         </div>
-        <Separator />
-        <div className="p-3">
+        <div className="border-t border-sidebar-border p-3">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-accent transition-colors">
+            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent transition-colors">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden text-left">
-                <p className="truncate font-medium">{user.fullName}</p>
-                <p className="truncate text-xs text-muted-foreground">{user.role}</p>
+                <p className="truncate font-medium text-sidebar-foreground">{user.fullName}</p>
+                <p className="truncate text-xs text-sidebar-foreground/60">{user.role}</p>
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
