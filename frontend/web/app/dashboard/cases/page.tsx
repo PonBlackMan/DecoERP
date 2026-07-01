@@ -17,22 +17,30 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getCases, createCase, updateCaseStage,
-  STAGE_LABELS, STAGE_COLORS, CaseStage, CaseDto
+  STAGE_LABELS, STAGE_COLORS, SOURCE_LABELS, CaseStage, CaseSource, CaseDto
 } from "@/lib/cases";
 
 const STAGES: CaseStage[] = ["Negotiating", "Quoted", "DesignConfirming", "Contracted", "Abandoned"];
+const SOURCES: CaseSource[] = ["Owner", "Developer", "Referral", "Online"];
 
-const SOURCE_LABELS: Record<string, string> = {
-  Owner: "屋主自洽",
-  Developer: "建設公司建案",
+type FormState = {
+  clientName: string;
+  clientPhone: string;
+  source: CaseSource;
+  referrerName: string;
+  referralFeePercent: string;
 };
+
+const emptyForm = (): FormState => ({
+  clientName: "", clientPhone: "", source: "Owner", referrerName: "", referralFeePercent: "",
+});
 
 export default function CasesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<CaseStage | "all">("all");
   const [openCreate, setOpenCreate] = useState(false);
-  const [form, setForm] = useState({ clientName: "", clientPhone: "", source: "Owner" as "Owner" | "Developer" });
+  const [form, setForm] = useState<FormState>(emptyForm());
 
   const { data, isLoading } = useQuery({
     queryKey: ["cases", stageFilter, search],
@@ -40,12 +48,18 @@ export default function CasesPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => createCase({ ...form }),
+    mutationFn: () => createCase({
+      clientName: form.clientName,
+      clientPhone: form.clientPhone || undefined,
+      source: form.source,
+      referrerName: form.referrerName || undefined,
+      referralFeePercent: form.referralFeePercent ? Number(form.referralFeePercent) : undefined,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cases"] });
       toast.success("案件建立成功");
       setOpenCreate(false);
-      setForm({ clientName: "", clientPhone: "", source: "Owner" });
+      setForm(emptyForm());
     },
     onError: () => toast.error("建立失敗，請再試一次"),
   });
@@ -57,6 +71,8 @@ export default function CasesPage() {
       toast.success("狀態已更新");
     },
   });
+
+  const showReferrerFields = form.source === "Referral";
 
   return (
     <div className="space-y-6">
@@ -126,9 +142,16 @@ export default function CasesPage() {
                 <tbody>
                   {data.items.map((c: CaseDto) => (
                     <tr key={c.id} className="border-b last:border-0 hover:bg-muted/40">
-                      <td className="py-2.5 px-3 font-medium">{c.clientName}</td>
+                      <td className="py-2.5 px-3">
+                        <p className="font-medium">{c.clientName}</p>
+                        {c.referrerName && (
+                          <p className="text-xs text-muted-foreground">介紹人：{c.referrerName}</p>
+                        )}
+                      </td>
                       <td className="py-2.5 px-3 text-muted-foreground">{c.clientPhone ?? "—"}</td>
-                      <td className="py-2.5 px-3">{c.source === "Developer" ? "建設公司" : "屋主自洽"}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="text-sm">{SOURCE_LABELS[c.source] ?? c.source}</span>
+                      </td>
                       <td className="py-2.5 px-3 text-muted-foreground">
                         {c.developerProjectName ? `${c.developerProjectName} ${c.unitNo ?? ""}` : "—"}
                       </td>
@@ -191,17 +214,43 @@ export default function CasesPage() {
               <Label>案件來源</Label>
               <Select
                 value={form.source}
-                onValueChange={(v) => setForm({ ...form, source: v as "Owner" | "Developer" })}
+                onValueChange={(v) => setForm({ ...form, source: v as CaseSource, referrerName: "", referralFeePercent: "" })}
               >
                 <SelectTrigger>
-                  <SelectValue>{SOURCE_LABELS[form.source] ?? form.source}</SelectValue>
+                  <SelectValue>{SOURCE_LABELS[form.source]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Owner">屋主自洽</SelectItem>
-                  <SelectItem value="Developer">建設公司建案</SelectItem>
+                  {SOURCES.map((s) => (
+                    <SelectItem key={s} value={s}>{SOURCE_LABELS[s]}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+            {showReferrerFields && (
+              <>
+                <div className="space-y-2">
+                  <Label>介紹人姓名</Label>
+                  <Input
+                    value={form.referrerName}
+                    onChange={(e) => setForm({ ...form, referrerName: e.target.value })}
+                    placeholder="例：陳先生"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>介紹費率（%）</Label>
+                  <Input
+                    type="number"
+                    value={form.referralFeePercent}
+                    onChange={(e) => setForm({ ...form, referralFeePercent: e.target.value })}
+                    placeholder="例：3"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                  />
+                  <p className="text-xs text-muted-foreground">以工程總金額的百分比計算</p>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenCreate(false)}>取消</Button>

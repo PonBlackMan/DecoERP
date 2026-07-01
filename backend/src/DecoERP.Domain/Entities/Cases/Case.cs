@@ -14,6 +14,8 @@ public class Case : BaseEntity
     public string? ClientEmail { get; set; }
     public string? Requirements { get; set; }
     public Guid? ConvertedProjectId { get; set; }
+    public string? ReferrerName { get; set; }
+    public decimal? ReferralFeePercent { get; set; }
 
     public Unit? Unit { get; set; }
     public ICollection<CaseActivity> Activities { get; set; } = [];

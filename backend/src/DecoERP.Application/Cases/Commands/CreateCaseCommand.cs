@@ -12,7 +12,9 @@ public record CreateCaseCommand(
     string? Requirements,
     CaseSource Source,
     Guid? UnitId,
-    Guid? SalesRepId) : IRequest<Guid>;
+    Guid? SalesRepId,
+    string? ReferrerName,
+    decimal? ReferralFeePercent) : IRequest<Guid>;
 
 public class CreateCaseCommandHandler(IDecoDbContext db, ICurrentUserService currentUser)
     : IRequestHandler<CreateCaseCommand, Guid>
@@ -29,7 +31,9 @@ public class CreateCaseCommandHandler(IDecoDbContext db, ICurrentUserService cur
             Source = request.Source,
             UnitId = request.UnitId,
             SalesRepId = request.SalesRepId,
-            Stage = CaseStage.Negotiating
+            Stage = CaseStage.Negotiating,
+            ReferrerName = request.ReferrerName,
+            ReferralFeePercent = request.ReferralFeePercent,
         };
 
         db.Cases.Add(@case);

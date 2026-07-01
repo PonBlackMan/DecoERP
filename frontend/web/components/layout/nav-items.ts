@@ -15,6 +15,11 @@ export const navItems = [
     icon: "FileText",
   },
   {
+    title: "報價範本",
+    href: "/dashboard/quote-packages",
+    icon: "LayoutTemplate",
+  },
+  {
     title: "工程專案",
     href: "/dashboard/projects",
     icon: "HardHat",

@@ -27,6 +27,8 @@ public interface IDecoDbContext
     DbSet<Quote> Quotes { get; }
     DbSet<QuoteItem> QuoteItems { get; }
     DbSet<QuoteTemplate> QuoteTemplates { get; }
+    DbSet<QuotePackage> QuotePackages { get; }
+    DbSet<QuotePackageItem> QuotePackageItems { get; }
     DbSet<Project> Projects { get; }
     DbSet<ProjectTask> ProjectTasks { get; }
     DbSet<SiteReport> SiteReports { get; }

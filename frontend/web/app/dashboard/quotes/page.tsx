@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Check, Trash2, Link2, Copy } from "lucide-react";
+import { Plus, Check, Trash2, Link2, Copy, LayoutTemplate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import {
   STATUS_LABELS, STATUS_COLORS, QuoteSummaryDto, QuoteItemInput
 } from "@/lib/quotes";
 import { getCases, STAGE_LABELS as CASE_STAGE_LABELS } from "@/lib/cases";
+import { getQuotePackages, QuotePackage } from "@/lib/quote-packages";
 
 const CATEGORIES = ["木作", "油漆", "水電", "泥作", "鋁窗", "鐵件", "地坪", "廚房設備", "衛浴設備", "家具", "燈具", "其他"];
 const SPACES = ["客廳", "主臥", "次臥", "廚房", "衛浴", "玄關", "書房", "陽台", "公共空間"];
@@ -32,6 +33,7 @@ const emptyItem = (): QuoteItemInput => ({
 export default function QuotesPage() {
   const queryClient = useQueryClient();
   const [openCreate, setOpenCreate] = useState(false);
+  const [openPackagePicker, setOpenPackagePicker] = useState(false);
   const [caseId, setCaseId] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<QuoteItemInput[]>([emptyItem()]);
@@ -50,6 +52,11 @@ export default function QuotesPage() {
   const { data: casesData } = useQuery({
     queryKey: ["cases-for-quote-select"],
     queryFn: () => getCases({ pageSize: 100 }),
+  });
+
+  const { data: packagesData } = useQuery({
+    queryKey: ["quote-packages"],
+    queryFn: () => getQuotePackages(true),
   });
 
   const selectedCase = casesData?.items.find((c) => c.id === caseId);
@@ -94,6 +101,21 @@ export default function QuotesPage() {
     setSignCopied(false);
   };
 
+  const applyPackage = (pkg: QuotePackage) => {
+    const pkgItems: QuoteItemInput[] = pkg.items.map((it, i) => ({
+      spaceName: it.spaceName,
+      category: it.category,
+      itemName: it.itemName,
+      unit: it.unit,
+      unitPrice: it.unitPrice,
+      qty: it.qty,
+      sortOrder: i,
+    }));
+    setItems(pkgItems);
+    setOpenPackagePicker(false);
+    setOpenCreate(true);
+  };
+
   const handleSignCopy = async () => {
     await navigator.clipboard.writeText(signUrl);
     setSignCopied(true);
@@ -112,9 +134,14 @@ export default function QuotesPage() {
           <h1 className="text-2xl font-bold">報價管理</h1>
           <p className="text-sm text-muted-foreground mt-1">逐項報價，支援多版本，確認後轉合約金額</p>
         </div>
-        <Button onClick={() => setOpenCreate(true)}>
-          <Plus className="mr-2 h-4 w-4" />新增報價單
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setOpenPackagePicker(true)}>
+            <LayoutTemplate className="mr-2 h-4 w-4" />從範本建立
+          </Button>
+          <Button onClick={() => { setItems([emptyItem()]); setOpenCreate(true); }}>
+            <Plus className="mr-2 h-4 w-4" />新增報價單
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -192,6 +219,47 @@ export default function QuotesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Package Picker Dialog */}
+      <Dialog open={openPackagePicker} onOpenChange={setOpenPackagePicker}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>選擇報價範本</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2 max-h-96 overflow-y-auto">
+            {!packagesData?.length ? (
+              <p className="text-center text-sm text-muted-foreground py-8">尚無範本，請先至「報價範本」建立</p>
+            ) : (
+              packagesData.map((pkg) => {
+                const total = pkg.items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
+                return (
+                  <button
+                    key={pkg.id}
+                    className="w-full text-left border rounded-lg p-4 hover:bg-accent transition-colors"
+                    onClick={() => applyPackage(pkg)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{pkg.name}</p>
+                        {pkg.description && (
+                          <p className="text-sm text-muted-foreground mt-0.5">{pkg.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">{pkg.items.length} 個工項</p>
+                      </div>
+                      <span className="text-sm font-semibold shrink-0">
+                        {total.toLocaleString("zh-TW", { style: "currency", currency: "TWD", maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenPackagePicker(false)}>取消</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Sign Link Dialog */}
       <Dialog open={!!signQuote} onOpenChange={(v) => { if (!v) { setSignQuote(null); setSignUrl(""); setSignPhone(""); } }}>

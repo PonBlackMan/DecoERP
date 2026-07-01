@@ -1,7 +1,7 @@
 import { api } from "./api";
 
 export type CaseStage = "Negotiating" | "Quoted" | "DesignConfirming" | "Contracted" | "Abandoned";
-export type CaseSource = "Developer" | "Owner";
+export type CaseSource = "Developer" | "Owner" | "Referral" | "Online";
 
 export interface CaseDto {
   id: string;
@@ -13,6 +13,8 @@ export interface CaseDto {
   developerProjectName?: string;
   salesRepId?: string;
   createdAt: string;
+  referrerName?: string;
+  referralFeePercent?: number;
 }
 
 export interface PagedResult<T> {
@@ -21,6 +23,13 @@ export interface PagedResult<T> {
   page: number;
   pageSize: number;
 }
+
+export const SOURCE_LABELS: Record<CaseSource, string> = {
+  Developer: "建設公司",
+  Owner: "屋主自洽",
+  Referral: "客戶介紹",
+  Online: "網路廣告",
+};
 
 export const STAGE_LABELS: Record<CaseStage, string> = {
   Negotiating: "洽談中",
@@ -50,6 +59,8 @@ export async function createCase(payload: {
   requirements?: string;
   source: CaseSource;
   unitId?: string;
+  referrerName?: string;
+  referralFeePercent?: number;
 }) {
   const { data } = await api.post<{ id: string }>("/api/cases", payload);
   return data;

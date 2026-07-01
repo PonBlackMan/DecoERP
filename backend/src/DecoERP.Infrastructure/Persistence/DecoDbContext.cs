@@ -34,6 +34,8 @@ public class DecoDbContext(DbContextOptions<DecoDbContext> options) : DbContext(
     public DbSet<Quote> Quotes => Set<Quote>();
     public DbSet<QuoteItem> QuoteItems => Set<QuoteItem>();
     public DbSet<QuoteTemplate> QuoteTemplates => Set<QuoteTemplate>();
+    public DbSet<QuotePackage> QuotePackages => Set<QuotePackage>();
+    public DbSet<QuotePackageItem> QuotePackageItems => Set<QuotePackageItem>();
 
     // Projects
     public DbSet<Project> Projects => Set<Project>();

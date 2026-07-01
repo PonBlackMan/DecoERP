@@ -21,7 +21,9 @@ public record CaseDto(
     string? UnitNo,
     string? DeveloperProjectName,
     Guid? SalesRepId,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? ReferrerName,
+    decimal? ReferralFeePercent);
 
 public class GetCasesQueryHandler(IDecoDbContext db, ICurrentUserService currentUser)
     : IRequestHandler<GetCasesQuery, PagedResult<CaseDto>>
@@ -53,7 +55,9 @@ public class GetCasesQueryHandler(IDecoDbContext db, ICurrentUserService current
                 c.Unit != null ? c.Unit.UnitNo : null,
                 c.Unit != null ? c.Unit.DeveloperProject.Name : null,
                 c.SalesRepId,
-                c.CreatedAt))
+                c.CreatedAt,
+                c.ReferrerName,
+                c.ReferralFeePercent))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<CaseDto>(items, total, request.Page, request.PageSize);
