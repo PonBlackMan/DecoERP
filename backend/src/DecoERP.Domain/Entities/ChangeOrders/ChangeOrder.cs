@@ -11,6 +11,10 @@ public class ChangeOrder : BaseEntity
     public ChangeOrderStatus Status { get; set; } = ChangeOrderStatus.Draft;
     public decimal TotalAmount { get; set; }
 
+    public string? SignToken { get; set; }
+    public DateTime? SignTokenExpiresAt { get; set; }
+    public string? SignClientPhoneLastFour { get; set; }
+
     public Projects.Project Project { get; set; } = null!;
     public ICollection<ChangeOrderItem> Items { get; set; } = [];
     public ICollection<ChangeOrderSignoff> Signoffs { get; set; } = [];

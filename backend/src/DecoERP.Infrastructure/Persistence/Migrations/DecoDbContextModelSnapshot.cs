@@ -276,6 +276,17 @@ namespace DecoERP.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("SignClientPhoneLastFour")
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.Property<string>("SignToken")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("SignTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -288,6 +299,10 @@ namespace DecoERP.Infrastructure.Persistence.Migrations
                     b.HasIndex("ProjectId");
 
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("SignToken")
+                        .IsUnique()
+                        .HasFilter("\"SignToken\" IS NOT NULL");
 
                     b.ToTable("change_orders", (string)null);
                 });
@@ -351,7 +366,16 @@ namespace DecoERP.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ClientPhoneLastFour")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
                     b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SignatureData")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("SignedAt")

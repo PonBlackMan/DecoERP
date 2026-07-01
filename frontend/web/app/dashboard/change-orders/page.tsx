@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Link2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  getChangeOrders, createChangeOrder, updateChangeOrderStatus,
+  getChangeOrders, createChangeOrder, updateChangeOrderStatus, requestSignToken,
   CHANGE_ORDER_STATUS_LABELS, CHANGE_ORDER_STATUS_COLORS,
-  CreateChangeOrderItemInput,
+  CreateChangeOrderItemInput, ChangeOrderItem,
 } from "@/lib/change-orders";
 import { getProjects } from "@/lib/projects";
 
@@ -37,6 +37,12 @@ export default function ChangeOrdersPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [items, setItems] = useState<CreateChangeOrderItemInput[]>([{ ...defaultItem }]);
+
+  // Sign link dialog state
+  const [signDialogCo, setSignDialogCo] = useState<ChangeOrderItem | null>(null);
+  const [phoneLastFour, setPhoneLastFour] = useState("");
+  const [generatedUrl, setGeneratedUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["change-orders"],
@@ -76,15 +82,41 @@ export default function ChangeOrdersPage() {
     onError: () => toast.error("更新失敗"),
   });
 
+  const signTokenMutation = useMutation({
+    mutationFn: () => requestSignToken(signDialogCo!.id, phoneLastFour),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["change-orders"] });
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      setGeneratedUrl(`${origin}/sign?token=${result.token}`);
+    },
+    onError: () => toast.error("產生連結失敗"),
+  });
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(generatedUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const openSignDialog = (co: ChangeOrderItem) => {
+    setSignDialogCo(co);
+    setPhoneLastFour("");
+    setGeneratedUrl(co.signToken ? `${window.location.origin}/sign?token=${co.signToken}` : "");
+    setCopied(false);
+  };
+
+  const closeSignDialog = () => {
+    setSignDialogCo(null);
+    setGeneratedUrl("");
+    setPhoneLastFour("");
+  };
+
   const totalAmount = items.reduce((sum, i) => sum + (Number(i.unitPrice) || 0) * (Number(i.qty) || 0), 0);
-
   const addItem = () => setItems([...items, { ...defaultItem }]);
-
   const removeItem = (idx: number) => {
     if (items.length === 1) return;
     setItems(items.filter((_, i) => i !== idx));
   };
-
   const updateItem = (idx: number, field: keyof CreateChangeOrderItemInput, value: string | number) => {
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
   };
@@ -151,21 +183,35 @@ export default function ChangeOrdersPage() {
                         {new Date(co.createdAt).toLocaleDateString("zh-TW")}
                       </td>
                       <td className="py-2.5 px-3">
-                        <Select
-                          value={co.status}
-                          onValueChange={(v) => v && statusMutation.mutate({ id: co.id, status: v as string })}
-                        >
-                          <SelectTrigger className="h-7 text-xs w-28">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_KEYS.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {CHANGE_ORDER_STATUS_LABELS[s]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-1">
+                          {/* Sign link button: show for Draft/PendingSign */}
+                          {(co.status === "Draft" || co.status === "PendingSign") && (
+                            <Button
+                              size="sm"
+                              variant={co.signToken ? "outline" : "secondary"}
+                              className="h-7 text-xs gap-1"
+                              onClick={() => openSignDialog(co)}
+                            >
+                              <Link2 className="h-3 w-3" />
+                              {co.signToken ? "連結" : "發送簽認"}
+                            </Button>
+                          )}
+                          <Select
+                            value={co.status}
+                            onValueChange={(v) => v && statusMutation.mutate({ id: co.id, status: v as string })}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_KEYS.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {CHANGE_ORDER_STATUS_LABELS[s]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -175,6 +221,62 @@ export default function ChangeOrdersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Sign Link Dialog */}
+      <Dialog open={!!signDialogCo} onOpenChange={(v) => { if (!v) closeSignDialog(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>發送客戶簽認連結</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              系統將產生一個專屬連結，客戶透過連結確認變更內容並以手繪方式簽名。
+            </p>
+            <div className="space-y-2">
+              <Label>客戶電話末四碼 *</Label>
+              <Input
+                value={phoneLastFour}
+                onChange={(e) => setPhoneLastFour(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="例：5678"
+                maxLength={4}
+                disabled={!!generatedUrl}
+              />
+              <p className="text-xs text-muted-foreground">客戶須輸入相符的末四碼才能完成簽認</p>
+            </div>
+
+            {generatedUrl && (
+              <div className="space-y-2">
+                <Label>簽認連結（有效期 7 天）</Label>
+                <div className="flex gap-2">
+                  <Input value={generatedUrl} readOnly className="text-xs font-mono" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={handleCopy}
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  複製後透過 LINE 或訊息傳送給客戶
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeSignDialog}>關閉</Button>
+            {!generatedUrl && (
+              <Button
+                onClick={() => signTokenMutation.mutate()}
+                disabled={phoneLastFour.length !== 4 || signTokenMutation.isPending}
+              >
+                {signTokenMutation.isPending ? "產生中..." : "產生連結"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>

@@ -9,5 +9,9 @@ public class ChangeOrderSignoff : BaseEntity
     public DateTime SignedAt { get; set; }
     public string? Notes { get; set; }
 
+    public string? SignatureData { get; set; }
+    public string? ClientPhoneLastFour { get; set; }
+    public string? IpAddress { get; set; }
+
     public ChangeOrder ChangeOrder { get; set; } = null!;
 }

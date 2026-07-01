@@ -10,6 +10,8 @@ export interface ChangeOrderItem {
   status: string;
   totalAmount: number;
   createdAt: string;
+  signToken?: string;
+  signTokenExpiresAt?: string;
 }
 
 export interface CreateChangeOrderItemInput {
@@ -17,6 +19,24 @@ export interface CreateChangeOrderItemInput {
   description?: string;
   unitPrice: number;
   qty: number;
+}
+
+export interface ChangeOrderSigningInfo {
+  id: string;
+  orderNo: string;
+  reason: string;
+  totalAmount: number;
+  status: string;
+  projectName: string;
+  expiresAt: string;
+  alreadySigned: boolean;
+  items: Array<{
+    itemName: string;
+    description?: string;
+    unitPrice: number;
+    qty: number;
+    amount: number;
+  }>;
 }
 
 export const CHANGE_ORDER_STATUS_LABELS: Record<string, string> = {
@@ -50,4 +70,40 @@ export async function createChangeOrder(payload: {
 
 export async function updateChangeOrderStatus(id: string, status: string) {
   await api.patch(`/api/changeorders/${id}/status`, { status });
+}
+
+export async function requestSignToken(
+  id: string,
+  clientPhoneLastFour: string,
+  expiresInDays = 7
+): Promise<{ token: string; expiresAt: string }> {
+  const { data } = await api.post(`/api/changeorders/${id}/sign-token`, {
+    clientPhoneLastFour,
+    expiresInDays,
+  });
+  return data;
+}
+
+export async function getSigningInfo(token: string): Promise<ChangeOrderSigningInfo> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+  const res = await fetch(`${baseUrl}/api/signing/${token}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function submitSignature(
+  token: string,
+  phoneLastFour: string,
+  signatureData: string
+): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+  const res = await fetch(`${baseUrl}/api/signing/${token}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phoneLastFour, signatureData }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "請求失敗" }));
+    throw new Error(body.error ?? "請求失敗");
+  }
 }

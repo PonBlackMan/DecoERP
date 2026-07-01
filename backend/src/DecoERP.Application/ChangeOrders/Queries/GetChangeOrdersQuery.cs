@@ -18,7 +18,9 @@ public record ChangeOrderDto(
     string Reason,
     string Status,
     decimal TotalAmount,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? SignToken,
+    DateTime? SignTokenExpiresAt);
 
 public class GetChangeOrdersQueryHandler(IDecoDbContext db, ICurrentUserService currentUser)
     : IRequestHandler<GetChangeOrdersQuery, PagedResult<ChangeOrderDto>>
@@ -46,7 +48,9 @@ public class GetChangeOrdersQueryHandler(IDecoDbContext db, ICurrentUserService 
                 co.Reason,
                 co.Status.ToString(),
                 co.TotalAmount,
-                co.CreatedAt))
+                co.CreatedAt,
+                co.SignToken,
+                co.SignTokenExpiresAt))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ChangeOrderDto>(items, total, request.Page, request.PageSize);

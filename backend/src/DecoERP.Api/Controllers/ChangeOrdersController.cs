@@ -35,6 +35,14 @@ public class ChangeOrdersController(ISender mediator) : ControllerBase
         var success = await mediator.Send(new UpdateChangeOrderStatusCommand(id, request.Status));
         return success ? NoContent() : NotFound();
     }
+
+    [HttpPost("{id}/sign-token")]
+    public async Task<IActionResult> RequestSignToken(Guid id, [FromBody] RequestSignTokenRequest request)
+    {
+        var result = await mediator.Send(new RequestSignTokenCommand(id, request.ClientPhoneLastFour, request.ExpiresInDays));
+        return result is null ? NotFound() : Ok(result);
+    }
 }
 
 public record UpdateChangeOrderStatusRequest(ChangeOrderStatus Status);
+public record RequestSignTokenRequest(string ClientPhoneLastFour, int ExpiresInDays = 7);
