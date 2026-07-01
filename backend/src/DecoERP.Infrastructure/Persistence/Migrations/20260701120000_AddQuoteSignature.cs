@@ -1,11 +1,15 @@
 using System;
+using DecoERP.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace DecoERP.Infrastructure.Persistence.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(DecoDbContext))]
+    [Migration("20260701120000_AddQuoteSignature")]
     public partial class AddQuoteSignature : Migration
     {
         /// <inheritdoc />
