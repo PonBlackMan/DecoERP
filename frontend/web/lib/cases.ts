@@ -78,3 +78,26 @@ export async function convertCaseToProject(id: string, payload: {
   const { data } = await api.post<{ projectId: string }>(`/api/cases/${id}/convert`, payload);
   return data;
 }
+
+export interface ReferralFeeDto {
+  caseId: string;
+  clientName: string;
+  referrerName: string;
+  referralFeePercent: number;
+  contractAmount?: number;
+  feeAmount?: number;
+  referralFeePaid: boolean;
+  referralFeePaidAt?: string;
+  createdAt: string;
+}
+
+export async function getReferralFees(unpaidOnly = false) {
+  const { data } = await api.get<ReferralFeeDto[]>("/api/cases/referral-fees", {
+    params: { unpaidOnly },
+  });
+  return data;
+}
+
+export async function markReferralFeePaid(caseId: string) {
+  await api.patch(`/api/cases/${caseId}/referral-fee/mark-paid`);
+}

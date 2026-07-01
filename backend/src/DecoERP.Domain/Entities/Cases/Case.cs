@@ -16,6 +16,8 @@ public class Case : BaseEntity
     public Guid? ConvertedProjectId { get; set; }
     public string? ReferrerName { get; set; }
     public decimal? ReferralFeePercent { get; set; }
+    public bool ReferralFeePaid { get; set; } = false;
+    public DateTime? ReferralFeePaidAt { get; set; }
 
     public Unit? Unit { get; set; }
     public ICollection<CaseActivity> Activities { get; set; } = [];

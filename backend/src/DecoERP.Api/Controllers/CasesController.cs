@@ -43,6 +43,20 @@ public class CasesController(ISender mediator) : ControllerBase
         var projectId = await mediator.Send(new ConvertCaseToProjectCommand(id, request.ProjectCode, request.StartDate, request.EndDate));
         return projectId.HasValue ? Ok(new { projectId }) : BadRequest(new { message = "案件未簽約或不存在" });
     }
+
+    [HttpGet("referral-fees")]
+    public async Task<IActionResult> GetReferralFees([FromQuery] bool unpaidOnly = false)
+    {
+        var result = await mediator.Send(new GetReferralFeesQuery(unpaidOnly));
+        return Ok(result);
+    }
+
+    [HttpPatch("{id}/referral-fee/mark-paid")]
+    public async Task<IActionResult> MarkReferralFeePaid(Guid id)
+    {
+        var success = await mediator.Send(new MarkReferralFeePaidCommand(id));
+        return success ? NoContent() : NotFound();
+    }
 }
 
 public record UpdateStageRequest(CaseStage Stage);
