@@ -1,4 +1,5 @@
 using DecoERP.Application.Common.Interfaces;
+using DecoERP.Infrastructure.BackgroundServices;
 using DecoERP.Infrastructure.Identity;
 using DecoERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddHttpContextAccessor();
+        services.AddHostedService<OverdueInvoiceCheckService>();
 
         return services;
     }
