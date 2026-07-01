@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, API_BASE } from "./api";
 import { PagedResult } from "./cases";
 
 export interface ChangeOrderItem {
@@ -84,8 +84,7 @@ export async function requestSignToken(
 }
 
 export async function getSigningInfo(token: string): Promise<SigningInfo> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const res = await fetch(`${baseUrl}/api/signing/${token}`);
+  const res = await fetch(`${API_BASE}/api/signing/${token}`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -95,8 +94,7 @@ export async function submitSignature(
   phoneLastFour: string,
   signatureData: string
 ): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const res = await fetch(`${baseUrl}/api/signing/${token}`, {
+  const res = await fetch(`${API_BASE}/api/signing/${token}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phoneLastFour, signatureData }),

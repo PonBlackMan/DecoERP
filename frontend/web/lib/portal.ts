@@ -1,3 +1,5 @@
+import { API_BASE } from "./api";
+
 export interface PortalProject {
   code: string;
   name: string;
@@ -76,8 +78,7 @@ export interface PortalData {
 }
 
 async function portalFetch<T>(path: string, phoneLastFour: string): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const res = await fetch(`${baseUrl}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phoneLastFour }),

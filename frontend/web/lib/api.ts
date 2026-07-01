@@ -1,14 +1,33 @@
 import axios from "axios";
 
-const configuredApiBase = process.env.NEXT_PUBLIC_API_URL?.trim();
-const browserHost = typeof window !== "undefined" ? window.location.hostname : "";
-const isBrowserLocalhost = browserHost === "localhost" || browserHost === "127.0.0.1";
-const pointsToLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiBase ?? "");
-const shouldIgnoreConfiguredLocalhost = !!configuredApiBase && !isBrowserLocalhost && pointsToLocalhost;
+function isLocalBrowserHost() {
+  if (typeof window === "undefined") return false;
+  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+}
 
-const API_BASE = shouldIgnoreConfiguredLocalhost
-  ? ""
-  : configuredApiBase || (isBrowserLocalhost ? "http://localhost:5058" : "");
+function isLocalhostUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeApiBase(value: string) {
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+export function resolveApiBase() {
+  const configuredApiBase = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (configuredApiBase) {
+    if (!isLocalBrowserHost() && isLocalhostUrl(configuredApiBase)) return "";
+    return normalizeApiBase(configuredApiBase);
+  }
+  return isLocalBrowserHost() ? "http://localhost:5058" : "";
+}
+
+export const API_BASE = resolveApiBase();
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -16,6 +35,9 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  if (!isLocalBrowserHost() && config.baseURL && isLocalhostUrl(config.baseURL)) {
+    config.baseURL = "";
+  }
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
