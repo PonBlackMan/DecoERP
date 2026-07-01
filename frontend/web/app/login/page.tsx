@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +23,18 @@ export default function LoginPage() {
       saveAuth(result);
       toast.success(`歡迎回來，${result.fullName}`);
       router.push("/dashboard");
-    } catch {
-      toast.error("帳號或密碼錯誤");
+    } catch (error) {
+      if (isAxiosError(error)) {
+        if (!error.response) {
+          toast.error("目前無法連線到伺服器，請確認後端已啟動");
+        } else if (error.response.status === 401) {
+          toast.error("帳號或密碼錯誤");
+        } else {
+          toast.error("登入失敗，請稍後再試");
+        }
+      } else {
+        toast.error("登入失敗，請稍後再試");
+      }
     } finally {
       setLoading(false);
     }
