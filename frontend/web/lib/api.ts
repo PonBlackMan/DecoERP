@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const PROD_FALLBACK_API_BASE = "https://deceerp-backend-production.up.railway.app";
+
 function isLocalBrowserHost() {
   if (typeof window === "undefined") return false;
   return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
@@ -21,10 +23,10 @@ function normalizeApiBase(value: string) {
 export function resolveApiBase() {
   const configuredApiBase = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (configuredApiBase) {
-    if (!isLocalBrowserHost() && isLocalhostUrl(configuredApiBase)) return "";
+    if (!isLocalBrowserHost() && isLocalhostUrl(configuredApiBase)) return PROD_FALLBACK_API_BASE;
     return normalizeApiBase(configuredApiBase);
   }
-  return isLocalBrowserHost() ? "http://localhost:5058" : "";
+  return isLocalBrowserHost() ? "http://localhost:5058" : PROD_FALLBACK_API_BASE;
 }
 
 export const API_BASE = resolveApiBase();
