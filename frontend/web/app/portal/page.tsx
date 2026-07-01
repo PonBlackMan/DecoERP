@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertCircle, Lock, Building2 } from "lucide-react";
@@ -50,39 +50,28 @@ function PortalContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
-  const [checkingStorage, setCheckingStorage] = useState(true);
-  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(() => {
+    if (typeof window === "undefined" || !token) return null;
+    return sessionStorage.getItem(storageKey(token));
+  });
   const [phone, setPhone] = useState("");
   const [verifyError, setVerifyError] = useState("");
   const [verifying, setVerifying] = useState(false);
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem(storageKey(token));
-    if (stored) {
-      setVerifiedPhone(stored);
-    } else {
-      setCheckingStorage(false);
-    }
-  }, [token]);
+  const [queryNonce, setQueryNonce] = useState(0);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["portal-data", token, verifiedPhone],
+    queryKey: ["portal-data", token, verifiedPhone, queryNonce],
     queryFn: () => getPortalData(token, verifiedPhone!),
     enabled: !!verifiedPhone,
     refetchInterval: 60_000,
     retry: false,
   });
 
-  useEffect(() => {
-    if (verifiedPhone && isError) {
-      sessionStorage.removeItem(storageKey(token));
-      setVerifiedPhone(null);
-      setVerifyError(error instanceof Error ? error.message : "驗證已失效，請重新輸入");
-      setCheckingStorage(false);
-    }
-  }, [isError, verifiedPhone, error, token]);
-
   const handleVerify = async () => {
+    if (!token) {
+      setVerifyError("無效的連結");
+      return;
+    }
     if (!/^\d{4}$/.test(phone)) {
       setVerifyError("請輸入 4 位數字");
       return;
@@ -93,7 +82,8 @@ function PortalContent() {
       await verifyPortalAccess(token, phone);
       sessionStorage.setItem(storageKey(token), phone);
       setVerifiedPhone(phone);
-      setCheckingStorage(false);
+      setQueryNonce((v) => v + 1);
+      setVerifyError("");
     } catch (err) {
       setVerifyError(err instanceof Error ? err.message : "驗證失敗");
     } finally {
@@ -101,13 +91,18 @@ function PortalContent() {
     }
   };
 
-  if (checkingStorage || (verifiedPhone && isLoading)) {
+  if (verifiedPhone && isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
+
+  const queryError = verifiedPhone && isError
+    ? (error instanceof Error ? error.message : "驗證已失效，請重新輸入")
+    : "";
+  const displayError = verifyError || queryError;
 
   if (!verifiedPhone || !data) {
     return (
@@ -131,10 +126,10 @@ function PortalContent() {
                 maxLength={4}
               />
             </div>
-            {verifyError && (
+            {displayError && (
               <p className="text-sm text-destructive flex items-center gap-1.5">
-                {verifyError.includes("15 分鐘") ? <Lock className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                {verifyError}
+                {displayError.includes("15 分鐘") ? <Lock className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                {displayError}
               </p>
             )}
             <Button className="w-full" onClick={handleVerify} disabled={verifying || phone.length !== 4}>

@@ -15,14 +15,12 @@ import { LogOut, Menu, X } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
+  const user = getUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const u = getUser();
-    if (!u) router.replace("/login");
-    else setUser(u);
-  }, [router]);
+    if (!user) router.replace("/login");
+  }, [router, user]);
 
   if (!user) return null;
 

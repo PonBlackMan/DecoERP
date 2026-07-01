@@ -1,6 +1,7 @@
 "use client";
-import { Suspense, useEffect, useRef, useState, useCallback } from "react";
+import { Suspense, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, AlertCircle, Loader2, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,8 +42,7 @@ function SignContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
-  const [pageState, setPageState] = useState<PageState>("loading");
-  const [info, setInfo] = useState<SigningInfo | null>(null);
+  const [pageState, setPageState] = useState<PageState>("verify");
   const [errorMsg, setErrorMsg] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
@@ -51,17 +51,23 @@ function SignContent() {
   const isDrawing = useRef(false);
   const hasSignature = useRef(false);
 
-  useEffect(() => {
-    if (!token) { setPageState("error"); setErrorMsg("無效的連結"); return; }
-    getSigningInfo(token)
-      .then((data) => {
-        setInfo(data);
-        if (data.alreadySigned) { setPageState("already-signed"); return; }
-        if (new Date(data.expiresAt) < new Date()) { setPageState("expired"); return; }
-        setPageState("verify");
-      })
-      .catch(() => { setPageState("error"); setErrorMsg("連結不存在或已失效"); });
-  }, [token]);
+  const {
+    data: info,
+    isLoading,
+    isError,
+  } = useQuery<SigningInfo>({
+    queryKey: ["signing-info", token],
+    queryFn: () => getSigningInfo(token),
+    enabled: !!token,
+    retry: false,
+  });
+
+  const invalidToken = !token;
+  const resolvedError = invalidToken || isError
+    ? (errorMsg || (invalidToken ? "無效的連結" : "連結不存在或已失效"))
+    : "";
+  const isExpired = !!info && new Date(info.expiresAt) < new Date();
+  const isAlreadySigned = !!info?.alreadySigned;
 
   const startDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -134,22 +140,22 @@ function SignContent() {
           <p className="text-sm text-muted-foreground mt-1">{labels.title}</p>
         </div>
 
-        {pageState === "loading" && (
+        {isLoading && (
           <div className="flex flex-col items-center gap-3 py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">載入中...</p>
           </div>
         )}
 
-        {pageState === "error" && (
+        {!isLoading && resolvedError && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
             <h2 className="font-semibold text-lg">連結無效</h2>
-            <p className="text-sm text-muted-foreground">{errorMsg}</p>
+            <p className="text-sm text-muted-foreground">{resolvedError}</p>
           </div>
         )}
 
-        {pageState === "expired" && (
+        {!isLoading && !resolvedError && isExpired && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
             <h2 className="font-semibold text-lg">連結已過期</h2>
@@ -157,7 +163,7 @@ function SignContent() {
           </div>
         )}
 
-        {pageState === "already-signed" && (
+        {!isLoading && !resolvedError && !isExpired && isAlreadySigned && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
             <h2 className="font-semibold text-lg">已完成簽認</h2>
@@ -165,7 +171,7 @@ function SignContent() {
           </div>
         )}
 
-        {pageState === "success" && (
+        {!isLoading && !resolvedError && !isExpired && !isAlreadySigned && pageState === "success" && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
             <h2 className="font-semibold text-lg">簽認完成</h2>
@@ -173,7 +179,7 @@ function SignContent() {
           </div>
         )}
 
-        {pageState === "verify" && info && (
+        {!isLoading && !resolvedError && !isExpired && !isAlreadySigned && pageState === "verify" && info && (
           <div className="space-y-4">
             <div className="rounded-xl border bg-card p-5 space-y-3">
               <div className="flex items-start justify-between gap-4">
@@ -236,7 +242,7 @@ function SignContent() {
           </div>
         )}
 
-        {(pageState === "sign" || pageState === "submitting") && info && (
+        {!isLoading && !resolvedError && !isExpired && !isAlreadySigned && (pageState === "sign" || pageState === "submitting") && info && (
           <div className="space-y-4">
             <div className="rounded-xl border bg-card p-4 flex justify-between items-center">
               <div>
