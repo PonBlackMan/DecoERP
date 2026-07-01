@@ -36,6 +36,14 @@ public class ProjectsController(ISender mediator) : ControllerBase
         var success = await mediator.Send(new UpdateProjectStatusCommand(id, request.Status));
         return success ? NoContent() : NotFound();
     }
+
+    [HttpPost("{id}/portal-link")]
+    public async Task<IActionResult> GeneratePortalLink(Guid id, [FromBody] GeneratePortalLinkRequest request)
+    {
+        var result = await mediator.Send(new GeneratePortalLinkCommand(id, request.PhoneLastFour, request.ExpiresInDays ?? 180));
+        return result is null ? NotFound() : Ok(result);
+    }
 }
 
 public record UpdateProjectStatusRequest(ProjectStatus Status);
+public record GeneratePortalLinkRequest(string PhoneLastFour, int? ExpiresInDays);

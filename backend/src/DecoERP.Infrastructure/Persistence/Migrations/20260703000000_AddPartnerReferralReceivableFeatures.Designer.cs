@@ -3,6 +3,7 @@ using System;
 using DecoERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DecoERP.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DecoDbContext))]
-    partial class DecoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703000000_AddPartnerReferralReceivableFeatures")]
+    partial class AddPartnerReferralReceivableFeatures
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1443,23 +1446,6 @@ namespace DecoERP.Infrastructure.Persistence.Migrations
                     b.Property<string>("OwnerPhone")
                         .HasColumnType("text");
 
-                    b.Property<int>("PortalFailedAttempts")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("PortalLockedUntil")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PortalPhoneLastFour")
-                        .HasMaxLength(4)
-                        .HasColumnType("character varying(4)");
-
-                    b.Property<string>("PortalToken")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<DateTime?>("PortalTokenExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<Guid?>("SiteManagerId")
                         .HasColumnType("uuid");
 
@@ -1478,10 +1464,6 @@ namespace DecoERP.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PortalToken")
-                        .IsUnique()
-                        .HasFilter("\"PortalToken\" IS NOT NULL");
 
                     b.HasIndex("TenantId");
 

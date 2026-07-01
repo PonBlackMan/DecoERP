@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Link2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,8 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  getProjects, createProject, updateProjectStatus,
-  PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS,
+  getProjects, createProject, updateProjectStatus, generatePortalLink,
+  PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, ProjectItem,
 } from "@/lib/projects";
 
 const STATUS_TABS = [
@@ -41,6 +41,9 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [portalTarget, setPortalTarget] = useState<ProjectItem | null>(null);
+  const [portalPhone, setPortalPhone] = useState("");
+  const [portalResult, setPortalResult] = useState<{ token: string; expiresAt: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["projects", statusFilter],
@@ -77,6 +80,31 @@ export default function ProjectsPage() {
     },
     onError: () => toast.error("更新失敗"),
   });
+
+  const portalLinkMutation = useMutation({
+    mutationFn: () => generatePortalLink(portalTarget!.id, portalPhone),
+    onSuccess: (result) => {
+      setPortalResult(result);
+      toast.success("業主連結已產生");
+    },
+    onError: () => toast.error("產生失敗"),
+  });
+
+  const openPortalDialog = (p: ProjectItem) => {
+    setPortalTarget(p);
+    setPortalPhone((p.ownerPhone ?? "").replace(/\D/g, "").slice(-4));
+    setPortalResult(null);
+  };
+
+  const closePortalDialog = () => {
+    setPortalTarget(null);
+    setPortalPhone("");
+    setPortalResult(null);
+  };
+
+  const portalUrl = portalResult && typeof window !== "undefined"
+    ? `${window.location.origin}/portal?token=${portalResult.token}`
+    : "";
 
   const canSubmit =
     form.code.trim() &&
@@ -171,21 +199,26 @@ export default function ProjectsPage() {
                         {p.endDate ? new Date(p.endDate).toLocaleDateString("zh-TW") : "—"}
                       </td>
                       <td className="py-2.5 px-3">
-                        <Select
-                          value={p.status}
-                          onValueChange={(v) => v && statusMutation.mutate({ id: p.id, status: v as string })}
-                        >
-                          <SelectTrigger className="h-7 text-xs w-28">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_KEYS.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {PROJECT_STATUS_LABELS[s]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={p.status}
+                            onValueChange={(v) => v && statusMutation.mutate({ id: p.id, status: v as string })}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_KEYS.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {PROJECT_STATUS_LABELS[s]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openPortalDialog(p)}>
+                            <Link2 className="mr-1 h-3 w-3" />業主連結
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -284,6 +317,53 @@ export default function ProjectsPage() {
               disabled={!canSubmit || createMutation.isPending}
             >
               {createMutation.isPending ? "建立中..." : "建立工程"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Portal Link Dialog */}
+      <Dialog open={!!portalTarget} onOpenChange={(v) => !v && closePortalDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>業主專屬連結 — {portalTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>驗證用手機末 4 碼 *</Label>
+              <Input
+                value={portalPhone}
+                onChange={(e) => setPortalPhone(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="0000"
+                maxLength={4}
+              />
+              <p className="text-xs text-muted-foreground">業主需輸入此 4 碼才能查看工程進度</p>
+            </div>
+            {portalResult && (
+              <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                <Label className="text-xs text-muted-foreground">連結網址</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={portalUrl} className="text-xs" />
+                  <Button
+                    variant="outline" size="icon"
+                    onClick={() => { navigator.clipboard.writeText(portalUrl); toast.success("已複製連結"); }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  有效期限至 {new Date(portalResult.expiresAt).toLocaleDateString("zh-TW")}，重新產生會讓舊連結立即失效
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closePortalDialog}>關閉</Button>
+            <Button
+              onClick={() => portalLinkMutation.mutate()}
+              disabled={portalPhone.length !== 4 || portalLinkMutation.isPending}
+            >
+              {portalLinkMutation.isPending ? "產生中..." : portalResult ? "重新產生" : "產生連結"}
             </Button>
           </DialogFooter>
         </DialogContent>

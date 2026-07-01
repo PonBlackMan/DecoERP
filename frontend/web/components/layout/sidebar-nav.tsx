@@ -5,12 +5,14 @@ import { cn } from "@/lib/utils";
 import { navItems } from "./nav-items";
 import {
   LayoutDashboard, Kanban, FileText, HardHat, FileDiff,
-  ShoppingCart, Banknote, Users, LayoutTemplate,
+  ShoppingCart, Banknote, Users, LayoutTemplate, Building2,
+  HandCoins, AlertCircle,
 } from "lucide-react";
 
 const iconMap = {
   LayoutDashboard, Kanban, FileText, HardHat, FileDiff,
-  ShoppingCart, Banknote, Users, LayoutTemplate,
+  ShoppingCart, Banknote, Users, LayoutTemplate, Building2,
+  HandCoins, AlertCircle,
 } as Record<string, React.ComponentType<{ className?: string }>>;
 
 interface SidebarNavProps {

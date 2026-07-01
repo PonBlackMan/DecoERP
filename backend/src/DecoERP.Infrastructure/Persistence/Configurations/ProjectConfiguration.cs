@@ -16,6 +16,9 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
         builder.Property(x => x.ContractAmount).HasPrecision(18, 2);
+        builder.Property(x => x.PortalToken).HasMaxLength(64);
+        builder.HasIndex(x => x.PortalToken).IsUnique().HasFilter("\"PortalToken\" IS NOT NULL");
+        builder.Property(x => x.PortalPhoneLastFour).HasMaxLength(4);
         builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 }

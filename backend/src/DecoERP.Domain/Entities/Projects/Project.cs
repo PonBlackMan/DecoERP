@@ -18,6 +18,12 @@ public class Project : BaseEntity
     public string? Address { get; set; }
     public string? Notes { get; set; }
 
+    public string? PortalToken { get; set; }
+    public DateTime? PortalTokenExpiresAt { get; set; }
+    public string? PortalPhoneLastFour { get; set; }
+    public int PortalFailedAttempts { get; set; } = 0;
+    public DateTime? PortalLockedUntil { get; set; }
+
     public ICollection<ProjectTask> Tasks { get; set; } = [];
     public ICollection<SiteReport> SiteReports { get; set; } = [];
     public ICollection<Issue> Issues { get; set; } = [];

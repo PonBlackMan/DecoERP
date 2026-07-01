@@ -56,3 +56,11 @@ export async function createProject(payload: {
 export async function updateProjectStatus(id: string, status: string) {
   await api.patch(`/api/projects/${id}/status`, { status });
 }
+
+export async function generatePortalLink(id: string, phoneLastFour: string, expiresInDays = 180) {
+  const { data } = await api.post<{ token: string; expiresAt: string }>(`/api/projects/${id}/portal-link`, {
+    phoneLastFour,
+    expiresInDays,
+  });
+  return data;
+}
