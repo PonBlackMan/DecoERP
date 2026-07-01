@@ -146,7 +146,7 @@ export default function CasesPage() {
                           onValueChange={(v) => stageMutation.mutate({ id: c.id, stage: v as CaseStage })}
                         >
                           <SelectTrigger className="h-7 text-xs w-28">
-                            <SelectValue />
+                            <SelectValue>{STAGE_LABELS[c.stage]}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {STAGES.map((s) => (
