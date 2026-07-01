@@ -37,14 +37,20 @@ export default function ReceivablesPage() {
   const [paymentTarget, setPaymentTarget] = useState<InvoiceReceivable | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["invoice-receivables", filter],
     queryFn: () => getInvoiceReceivables({ overdueOnly: filter === "overdue" }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const { data: projectsData } = useQuery({
     queryKey: ["projects", "all-for-select"],
     queryFn: () => getProjects({ pageSize: 100 }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const createMutation = useMutation({
@@ -114,6 +120,8 @@ export default function ReceivablesPage() {
         <CardContent>
           {isLoading ? (
             <div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : isError ? (
+            <p className="text-center text-sm text-destructive py-8">應收帳款資料載入失敗，請稍後再試</p>
           ) : !data?.length ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Banknote className="h-12 w-12 text-muted-foreground/30 mb-4" />

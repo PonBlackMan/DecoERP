@@ -29,8 +29,8 @@ public class GetQuotePackagesQueryHandler(IDecoDbContext db, ICurrentUserService
     public async Task<IList<QuotePackageDto>> Handle(GetQuotePackagesQuery request, CancellationToken cancellationToken)
     {
         var query = db.QuotePackages
+            .AsNoTracking()
             .Where(p => p.TenantId == currentUser.TenantId)
-            .Include(p => p.Items)
             .AsQueryable();
 
         if (request.ActiveOnly)

@@ -42,9 +42,16 @@ export default function CasesPage() {
   const [openCreate, setOpenCreate] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["cases", stageFilter, search],
-    queryFn: () => getCases({ stage: stageFilter === "all" ? undefined : stageFilter, search }),
+    queryFn: () => getCases({
+      stage: stageFilter === "all" ? undefined : stageFilter,
+      search,
+      pageSize: 100,
+    }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const createMutation = useMutation({
@@ -123,6 +130,8 @@ export default function CasesPage() {
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
+          ) : isError ? (
+            <p className="text-center text-sm text-destructive py-8">案件資料載入失敗，請重新整理後再試</p>
           ) : !data?.items.length ? (
             <p className="text-center text-sm text-muted-foreground py-8">目前沒有案件，點選右上角新增</p>
           ) : (

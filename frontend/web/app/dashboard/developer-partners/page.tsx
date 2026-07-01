@@ -35,9 +35,12 @@ export default function DeveloperPartnersPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeveloperProject | null>(null);
   const [form, setForm] = useState<DeveloperProjectInput>(emptyForm());
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["developer-projects"],
     queryFn: () => getDeveloperProjects(false),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const createMutation = useMutation({
@@ -116,6 +119,8 @@ export default function DeveloperPartnersPage() {
 
       {isLoading ? (
         <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+      ) : isError ? (
+        <p className="text-center text-sm text-destructive py-8">合作夥伴資料載入失敗，請稍後再試</p>
       ) : !data?.length ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Building2 className="h-12 w-12 text-muted-foreground/30 mb-4" />

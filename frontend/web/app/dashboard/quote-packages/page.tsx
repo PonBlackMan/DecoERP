@@ -109,9 +109,12 @@ export default function QuotePackagesPage() {
   const [description, setDescription] = useState("");
   const [items, setItems] = useState<QuotePackageItemInput[]>([emptyItem()]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["quote-packages"],
     queryFn: () => getQuotePackages(false),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const createMutation = useMutation({
@@ -157,6 +160,8 @@ export default function QuotePackagesPage() {
 
       {isLoading ? (
         <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+      ) : isError ? (
+        <p className="text-center text-sm text-destructive py-8">報價範本載入失敗，請稍後再試</p>
       ) : !data?.length ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Package className="h-12 w-12 text-muted-foreground/30 mb-4" />

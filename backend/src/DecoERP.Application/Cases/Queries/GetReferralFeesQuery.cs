@@ -23,11 +23,11 @@ public class GetReferralFeesQueryHandler(IDecoDbContext db, ICurrentUserService 
     public async Task<IList<ReferralFeeDto>> Handle(GetReferralFeesQuery request, CancellationToken cancellationToken)
     {
         var query =
-            from c in db.Cases
+            from c in db.Cases.AsNoTracking()
             where c.TenantId == currentUser.TenantId
                   && c.ReferrerName != null
                   && c.ReferralFeePercent != null
-            join p in db.Projects on c.ConvertedProjectId equals (Guid?)p.Id into projGroup
+            join p in db.Projects.AsNoTracking() on c.ConvertedProjectId equals (Guid?)p.Id into projGroup
             from p in projGroup.DefaultIfEmpty()
             select new
             {

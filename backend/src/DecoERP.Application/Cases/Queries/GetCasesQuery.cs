@@ -31,8 +31,8 @@ public class GetCasesQueryHandler(IDecoDbContext db, ICurrentUserService current
     public async Task<PagedResult<CaseDto>> Handle(GetCasesQuery request, CancellationToken cancellationToken)
     {
         var query = db.Cases
+            .AsNoTracking()
             .Where(c => c.TenantId == currentUser.TenantId)
-            .Include(c => c.Unit).ThenInclude(u => u!.DeveloperProject)
             .AsQueryable();
 
         if (request.Stage.HasValue)
@@ -53,7 +53,7 @@ public class GetCasesQueryHandler(IDecoDbContext db, ICurrentUserService current
                 c.Stage.ToString(),
                 c.Source.ToString(),
                 c.Unit != null ? c.Unit.UnitNo : null,
-                c.Unit != null ? c.Unit.DeveloperProject.Name : null,
+                c.Unit != null && c.Unit.DeveloperProject != null ? c.Unit.DeveloperProject.Name : null,
                 c.SalesRepId,
                 c.CreatedAt,
                 c.ReferrerName,

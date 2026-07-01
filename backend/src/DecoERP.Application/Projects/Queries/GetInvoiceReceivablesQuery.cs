@@ -26,8 +26,8 @@ public class GetInvoiceReceivablesQueryHandler(IDecoDbContext db, ICurrentUserSe
     public async Task<IList<InvoiceReceivableDto>> Handle(GetInvoiceReceivablesQuery request, CancellationToken cancellationToken)
     {
         var query = db.InvoicesReceivable
+            .AsNoTracking()
             .Where(i => i.TenantId == currentUser.TenantId)
-            .Include(i => i.Project)
             .AsQueryable();
 
         if (request.ProjectId.HasValue)

@@ -27,6 +27,7 @@ public class GetDeveloperProjectsQueryHandler(IDecoDbContext db, ICurrentUserSer
     public async Task<IList<DeveloperProjectDto>> Handle(GetDeveloperProjectsQuery request, CancellationToken cancellationToken)
     {
         var query = db.DeveloperProjects
+            .AsNoTracking()
             .Where(p => p.TenantId == currentUser.TenantId)
             .AsQueryable();
 
