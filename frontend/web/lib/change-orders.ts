@@ -21,17 +21,16 @@ export interface CreateChangeOrderItemInput {
   qty: number;
 }
 
-export interface ChangeOrderSigningInfo {
-  id: string;
-  orderNo: string;
-  reason: string;
+export interface SigningInfo {
+  entityType: "Quote" | "ChangeOrder";
+  refNo: string;
+  description: string;
   totalAmount: number;
-  status: string;
-  projectName: string;
+  subjectName: string;
   expiresAt: string;
   alreadySigned: boolean;
   items: Array<{
-    itemName: string;
+    name: string;
     description?: string;
     unitPrice: number;
     qty: number;
@@ -84,7 +83,7 @@ export async function requestSignToken(
   return data;
 }
 
-export async function getSigningInfo(token: string): Promise<ChangeOrderSigningInfo> {
+export async function getSigningInfo(token: string): Promise<SigningInfo> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
   const res = await fetch(`${baseUrl}/api/signing/${token}`);
   if (!res.ok) throw new Error(await res.text());

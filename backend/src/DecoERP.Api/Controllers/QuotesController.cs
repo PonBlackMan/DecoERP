@@ -1,5 +1,6 @@
 using DecoERP.Application.Quotes.Commands;
 using DecoERP.Application.Quotes.Queries;
+using DecoERP.Application.Signing;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,4 +35,13 @@ public class QuotesController(ISender mediator) : ControllerBase
         var success = await mediator.Send(new ConfirmQuoteCommand(id));
         return success ? NoContent() : NotFound();
     }
+
+    [HttpPost("{id}/sign-token")]
+    public async Task<IActionResult> RequestSignToken(Guid id, [FromBody] QuoteSignTokenRequest request)
+    {
+        var result = await mediator.Send(new RequestQuoteSignTokenCommand(id, request.ClientPhoneLastFour, request.ExpiresInDays));
+        return result is null ? NotFound() : Ok(result);
+    }
 }
+
+public record QuoteSignTokenRequest(string ClientPhoneLastFour, int ExpiresInDays = 7);

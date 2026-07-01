@@ -13,6 +13,7 @@ export interface QuoteSummaryDto {
   caseId: string;
   clientName: string;
   createdAt: string;
+  signToken?: string;
 }
 
 export interface QuoteItemInput {
@@ -57,4 +58,16 @@ export async function createQuote(payload: {
 
 export async function confirmQuote(id: string) {
   await api.post(`/api/quotes/${id}/confirm`);
+}
+
+export async function requestQuoteSignToken(
+  id: string,
+  clientPhoneLastFour: string,
+  expiresInDays = 7
+): Promise<{ token: string; expiresAt: string }> {
+  const { data } = await api.post(`/api/quotes/${id}/sign-token`, {
+    clientPhoneLastFour,
+    expiresInDays,
+  });
+  return data;
 }

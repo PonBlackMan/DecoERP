@@ -201,7 +201,7 @@ export default function ChangeOrdersPage() {
                             onValueChange={(v) => v && statusMutation.mutate({ id: co.id, status: v as string })}
                           >
                             <SelectTrigger className="h-7 text-xs w-24">
-                              <SelectValue />
+                              <SelectValue>{CHANGE_ORDER_STATUS_LABELS[co.status]}</SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {STATUS_KEYS.map((s) => (

@@ -17,7 +17,8 @@ public record QuoteSummaryDto(
     DateTime? ValidUntil,
     Guid CaseId,
     string ClientName,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? SignToken);
 
 public class GetQuotesQueryHandler(IDecoDbContext db, ICurrentUserService currentUser)
     : IRequestHandler<GetQuotesQuery, PagedResult<QuoteSummaryDto>>
@@ -39,7 +40,7 @@ public class GetQuotesQueryHandler(IDecoDbContext db, ICurrentUserService curren
             .Take(request.PageSize)
             .Select(q => new QuoteSummaryDto(
                 q.Id, q.QuoteNo, q.Version, q.Status.ToString(),
-                q.TotalAmount, q.ValidUntil, q.CaseId, q.Case.ClientName, q.CreatedAt))
+                q.TotalAmount, q.ValidUntil, q.CaseId, q.Case.ClientName, q.CreatedAt, q.SignToken))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<QuoteSummaryDto>(items, total, request.Page, request.PageSize);

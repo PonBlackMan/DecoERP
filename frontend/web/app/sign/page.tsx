@@ -5,9 +5,25 @@ import { CheckCircle2, AlertCircle, Loader2, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getSigningInfo, submitSignature, ChangeOrderSigningInfo } from "@/lib/change-orders";
+import { getSigningInfo, submitSignature, SigningInfo } from "@/lib/change-orders";
 
 type PageState = "loading" | "verify" | "sign" | "submitting" | "success" | "error" | "expired" | "already-signed";
+
+const ENTITY_LABELS = {
+  Quote: { title: "報價單客戶確認", badge: "報價單", subjectLabel: "客戶", descLabel: "說明" },
+  ChangeOrder: { title: "變更單客戶簽認", badge: "變更單", subjectLabel: "工程", descLabel: "變更原因" },
+} as const;
+
+function getCanvasPos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  if ("touches" in e) {
+    const t = e.touches[0];
+    return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY };
+  }
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
 
 export default function SignPage() {
   return (
@@ -21,23 +37,12 @@ export default function SignPage() {
   );
 }
 
-function getCanvasPos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  if ("touches" in e) {
-    const t = e.touches[0];
-    return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY };
-  }
-  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
-}
-
 function SignContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
   const [pageState, setPageState] = useState<PageState>("loading");
-  const [orderInfo, setOrderInfo] = useState<ChangeOrderSigningInfo | null>(null);
+  const [info, setInfo] = useState<SigningInfo | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
@@ -48,12 +53,11 @@ function SignContent() {
 
   useEffect(() => {
     if (!token) { setPageState("error"); setErrorMsg("無效的連結"); return; }
-
     getSigningInfo(token)
-      .then((info) => {
-        setOrderInfo(info);
-        if (info.alreadySigned) { setPageState("already-signed"); return; }
-        if (new Date(info.expiresAt) < new Date()) { setPageState("expired"); return; }
+      .then((data) => {
+        setInfo(data);
+        if (data.alreadySigned) { setPageState("already-signed"); return; }
+        if (new Date(data.expiresAt) < new Date()) { setPageState("expired"); return; }
         setPageState("verify");
       })
       .catch(() => { setPageState("error"); setErrorMsg("連結不存在或已失效"); });
@@ -85,9 +89,7 @@ function SignContent() {
     ctx.stroke();
   }, []);
 
-  const stopDraw = useCallback(() => {
-    isDrawing.current = false;
-  }, []);
+  const stopDraw = useCallback(() => { isDrawing.current = false; }, []);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -109,36 +111,29 @@ function SignContent() {
     if (!hasSignature.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const signatureData = canvas.toDataURL("image/png");
     setPageState("submitting");
     try {
-      await submitSignature(token, phone, signatureData);
+      await submitSignature(token, phone, canvas.toDataURL("image/png"));
       setPageState("success");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "簽認失敗";
-      if (msg.includes("末四碼")) {
-        setPageState("verify");
-        setPhoneError(msg);
-      } else {
-        setPageState("error");
-        setErrorMsg(msg);
-      }
+      if (msg.includes("末四碼")) { setPageState("verify"); setPhoneError(msg); }
+      else { setPageState("error"); setErrorMsg(msg); }
     }
   };
 
-  // ── Layout shell ──────────────────────────────────────────────
+  const labels = info ? ENTITY_LABELS[info.entityType] : ENTITY_LABELS.ChangeOrder;
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start py-8 px-4">
       <div className="w-full max-w-lg">
-        {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold tracking-tight">
             <span className="text-primary">Deco</span>ERP
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">變更單客戶簽認</p>
+          <p className="text-sm text-muted-foreground mt-1">{labels.title}</p>
         </div>
 
-        {/* Loading */}
         {pageState === "loading" && (
           <div className="flex flex-col items-center gap-3 py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -146,8 +141,7 @@ function SignContent() {
           </div>
         )}
 
-        {/* Error */}
-        {(pageState === "error") && (
+        {pageState === "error" && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
             <h2 className="font-semibold text-lg">連結無效</h2>
@@ -155,7 +149,6 @@ function SignContent() {
           </div>
         )}
 
-        {/* Expired */}
         {pageState === "expired" && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
@@ -164,16 +157,14 @@ function SignContent() {
           </div>
         )}
 
-        {/* Already signed */}
         {pageState === "already-signed" && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
             <h2 className="font-semibold text-lg">已完成簽認</h2>
-            <p className="text-sm text-muted-foreground">此變更單已完成客戶簽認，無需再次操作。</p>
+            <p className="text-sm text-muted-foreground">此{labels.badge}已完成客戶簽認，無需再次操作。</p>
           </div>
         )}
 
-        {/* Success */}
         {pageState === "success" && (
           <div className="rounded-xl border bg-card p-8 text-center space-y-3">
             <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
@@ -182,38 +173,36 @@ function SignContent() {
           </div>
         )}
 
-        {/* Phone verify step */}
-        {(pageState === "verify") && orderInfo && (
+        {pageState === "verify" && info && (
           <div className="space-y-4">
-            {/* Order summary */}
             <div className="rounded-xl border bg-card p-5 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">變更單號</p>
-                  <p className="font-mono font-semibold">{orderInfo.orderNo}</p>
+                  <p className="text-xs text-muted-foreground">{labels.badge}號</p>
+                  <p className="font-mono font-semibold">{info.refNo}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">變更金額</p>
-                  <p className="font-semibold text-lg">
-                    {Number(orderInfo.totalAmount).toLocaleString("zh-TW")} 元
-                  </p>
+                  <p className="text-xs text-muted-foreground">金額</p>
+                  <p className="font-semibold text-lg">{Number(info.totalAmount).toLocaleString("zh-TW")} 元</p>
                 </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">工程</p>
-                <p className="text-sm">{orderInfo.projectName}</p>
+                <p className="text-xs text-muted-foreground">{labels.subjectLabel}</p>
+                <p className="text-sm">{info.subjectName}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">變更原因</p>
-                <p className="text-sm">{orderInfo.reason}</p>
-              </div>
-              {orderInfo.items.length > 0 && (
+              {info.description && (
+                <div>
+                  <p className="text-xs text-muted-foreground">{labels.descLabel}</p>
+                  <p className="text-sm">{info.description}</p>
+                </div>
+              )}
+              {info.items.length > 0 && (
                 <div className="border-t pt-3 space-y-1">
-                  <p className="text-xs text-muted-foreground mb-2">變更明細</p>
-                  {orderInfo.items.map((item, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span>{item.itemName}</span>
-                      <span className="text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mb-2">明細</p>
+                  {info.items.map((item, i) => (
+                    <div key={i} className="flex justify-between text-sm gap-2">
+                      <span className="flex-1 min-w-0 truncate">{item.name}</span>
+                      <span className="text-muted-foreground shrink-0">
                         {item.qty} × {Number(item.unitPrice).toLocaleString("zh-TW")} = {Number(item.amount).toLocaleString("zh-TW")} 元
                       </span>
                     </div>
@@ -222,7 +211,6 @@ function SignContent() {
               )}
             </div>
 
-            {/* Phone verification */}
             <div className="rounded-xl border bg-card p-5 space-y-4">
               <div>
                 <h2 className="font-semibold">身份確認</h2>
@@ -248,22 +236,19 @@ function SignContent() {
           </div>
         )}
 
-        {/* Signature step */}
-        {(pageState === "sign" || pageState === "submitting") && orderInfo && (
+        {(pageState === "sign" || pageState === "submitting") && info && (
           <div className="space-y-4">
-            {/* Order mini-summary */}
             <div className="rounded-xl border bg-card p-4 flex justify-between items-center">
               <div>
-                <p className="font-mono font-semibold text-sm">{orderInfo.orderNo}</p>
-                <p className="text-xs text-muted-foreground">{orderInfo.projectName}</p>
+                <p className="font-mono font-semibold text-sm">{info.refNo}</p>
+                <p className="text-xs text-muted-foreground">{info.subjectName}</p>
               </div>
               <div className="text-right">
-                <p className="font-semibold">{Number(orderInfo.totalAmount).toLocaleString("zh-TW")} 元</p>
-                <p className="text-xs text-muted-foreground">變更金額</p>
+                <p className="font-semibold">{Number(info.totalAmount).toLocaleString("zh-TW")} 元</p>
+                <p className="text-xs text-muted-foreground">金額</p>
               </div>
             </div>
 
-            {/* Canvas */}
             <div className="rounded-xl border bg-card p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -274,7 +259,6 @@ function SignContent() {
                   <Eraser className="h-3.5 w-3.5" />重簽
                 </Button>
               </div>
-
               <div className="relative rounded-lg border-2 border-dashed border-border bg-white overflow-hidden">
                 <canvas
                   ref={canvasRef}
@@ -294,9 +278,8 @@ function SignContent() {
                   在此簽名
                 </p>
               </div>
-
               <p className="text-xs text-muted-foreground text-center">
-                簽名即表示您確認上述變更內容無誤並同意執行
+                簽名即表示您確認上述{labels.badge}內容無誤並同意執行
               </p>
             </div>
 
@@ -306,9 +289,9 @@ function SignContent() {
               onClick={handleSubmit}
               disabled={pageState === "submitting"}
             >
-              {pageState === "submitting" ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />送出簽認中...</>
-              ) : "確認並送出簽名"}
+              {pageState === "submitting"
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />送出簽認中...</>
+                : "確認並送出簽名"}
             </Button>
           </div>
         )}

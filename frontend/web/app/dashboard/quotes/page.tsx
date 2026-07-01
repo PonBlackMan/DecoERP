@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Check, Trash2 } from "lucide-react";
+import { Plus, Check, Trash2, Link2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import {
-  getQuotes, createQuote, confirmQuote,
+  getQuotes, createQuote, confirmQuote, requestQuoteSignToken,
   STATUS_LABELS, STATUS_COLORS, QuoteSummaryDto, QuoteItemInput
 } from "@/lib/quotes";
 import { getCases, STAGE_LABELS as CASE_STAGE_LABELS } from "@/lib/cases";
@@ -35,6 +35,12 @@ export default function QuotesPage() {
   const [caseId, setCaseId] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<QuoteItemInput[]>([emptyItem()]);
+
+  // Sign link dialog
+  const [signQuote, setSignQuote] = useState<QuoteSummaryDto | null>(null);
+  const [signPhone, setSignPhone] = useState("");
+  const [signUrl, setSignUrl] = useState("");
+  const [signCopied, setSignCopied] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["quotes"],
@@ -70,6 +76,29 @@ export default function QuotesPage() {
       toast.success("報價單已確認，案件狀態更新為已簽約");
     },
   });
+
+  const signTokenMutation = useMutation({
+    mutationFn: () => requestQuoteSignToken(signQuote!.id, signPhone),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      setSignUrl(`${origin}/sign?token=${result.token}`);
+    },
+    onError: () => toast.error("產生連結失敗"),
+  });
+
+  const openSignDialog = (q: QuoteSummaryDto) => {
+    setSignQuote(q);
+    setSignPhone("");
+    setSignUrl(q.signToken ? `${window.location.origin}/sign?token=${q.signToken}` : "");
+    setSignCopied(false);
+  };
+
+  const handleSignCopy = async () => {
+    await navigator.clipboard.writeText(signUrl);
+    setSignCopied(true);
+    setTimeout(() => setSignCopied(false), 2000);
+  };
 
   const total = items.reduce((s, it) => s + it.unitPrice * it.qty, 0);
 
@@ -132,15 +161,28 @@ export default function QuotesPage() {
                         </Badge>
                       </td>
                       <td className="py-2.5 px-3">
-                        {q.status === "Draft" || q.status === "Sent" ? (
-                          <Button
-                            size="sm" variant="outline" className="h-7 text-xs"
-                            onClick={() => confirmMutation.mutate(q.id)}
-                            disabled={confirmMutation.isPending}
-                          >
-                            <Check className="mr-1 h-3 w-3" />確認
-                          </Button>
-                        ) : null}
+                        <div className="flex items-center gap-1">
+                          {(q.status === "Draft" || q.status === "Sent") && (
+                            <Button
+                              size="sm"
+                              variant={q.signToken ? "outline" : "secondary"}
+                              className="h-7 text-xs gap-1"
+                              onClick={() => openSignDialog(q)}
+                            >
+                              <Link2 className="h-3 w-3" />
+                              {q.signToken ? "連結" : "發送簽認"}
+                            </Button>
+                          )}
+                          {(q.status === "Draft" || q.status === "Sent") && (
+                            <Button
+                              size="sm" variant="outline" className="h-7 text-xs"
+                              onClick={() => confirmMutation.mutate(q.id)}
+                              disabled={confirmMutation.isPending}
+                            >
+                              <Check className="mr-1 h-3 w-3" />確認
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -150,6 +192,54 @@ export default function QuotesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Sign Link Dialog */}
+      <Dialog open={!!signQuote} onOpenChange={(v) => { if (!v) { setSignQuote(null); setSignUrl(""); setSignPhone(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>發送客戶簽認連結</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              客戶透過連結確認報價內容並以手繪方式簽名，簽認後報價單自動標記為「已確認」並更新案件為已簽約。
+            </p>
+            <div className="space-y-2">
+              <Label>客戶電話末四碼 *</Label>
+              <Input
+                value={signPhone}
+                onChange={(e) => setSignPhone(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="例：5678"
+                maxLength={4}
+                disabled={!!signUrl}
+              />
+              <p className="text-xs text-muted-foreground">客戶須輸入相符的末四碼才能完成簽認</p>
+            </div>
+            {signUrl && (
+              <div className="space-y-2">
+                <Label>簽認連結（有效期 7 天）</Label>
+                <div className="flex gap-2">
+                  <Input value={signUrl} readOnly className="text-xs font-mono" />
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={handleSignCopy}>
+                    {signCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">複製後透過 LINE 或訊息傳送給客戶</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSignQuote(null); setSignUrl(""); setSignPhone(""); }}>關閉</Button>
+            {!signUrl && (
+              <Button
+                onClick={() => signTokenMutation.mutate()}
+                disabled={signPhone.length !== 4 || signTokenMutation.isPending}
+              >
+                {signTokenMutation.isPending ? "產生中..." : "產生連結"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Dialog */}
       <Dialog open={openCreate} onOpenChange={setOpenCreate}>
