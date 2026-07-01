@@ -88,7 +88,7 @@ export default function HrPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">人員管理</h1>
           <p className="text-sm text-muted-foreground mt-1">員工基本資料與狀態管理</p>
@@ -192,7 +192,7 @@ export default function HrPage() {
             <DialogTitle>新增員工</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4 py-2 pr-1">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>姓名 *</Label>
                 <Input
@@ -210,7 +210,7 @@ export default function HrPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>職稱 *</Label>
                 <Input
@@ -228,7 +228,7 @@ export default function HrPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>電話</Label>
                 <Input
@@ -247,7 +247,7 @@ export default function HrPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>到職日 *</Label>
                 <Input
@@ -266,7 +266,7 @@ export default function HrPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>緊急聯絡人</Label>
                 <Input

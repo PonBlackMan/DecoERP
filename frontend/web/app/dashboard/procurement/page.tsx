@@ -116,7 +116,7 @@ export default function ProcurementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">採購管理</h1>
           <p className="text-sm text-muted-foreground mt-1">廠商與採購單管理</p>
@@ -260,7 +260,7 @@ export default function ProcurementPage() {
             <DialogTitle>新增廠商</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>廠商名稱 *</Label>
                 <Input
@@ -294,7 +294,7 @@ export default function ProcurementPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>聯絡人</Label>
                 <Input
@@ -312,7 +312,7 @@ export default function ProcurementPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input
@@ -372,7 +372,7 @@ export default function ProcurementPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>採購單號 *</Label>
                 <Input
@@ -409,8 +409,8 @@ export default function ProcurementPage() {
               </div>
               <div className="space-y-2">
                 {poItems.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-start border rounded-md p-2">
-                    <div className="col-span-5 space-y-1">
+                  <div key={idx} className="border rounded-md p-2 space-y-2">
+                    <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">品項說明 *</p>
                       <Input
                         value={item.description}
@@ -419,36 +419,38 @@ export default function ProcurementPage() {
                         className="h-8 text-sm"
                       />
                     </div>
-                    <div className="col-span-3 space-y-1">
-                      <p className="text-xs text-muted-foreground">單價</p>
-                      <Input
-                        type="number"
-                        value={item.unitPrice}
-                        onChange={(e) => updatePoItem(idx, "unitPrice", Number(e.target.value))}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <p className="text-xs text-muted-foreground">數量</p>
-                      <Input
-                        type="number"
-                        value={item.qty}
-                        onChange={(e) => updatePoItem(idx, "qty", Number(e.target.value))}
-                        className="h-8 text-sm"
-                        min={1}
-                      />
-                    </div>
-                    <div className="col-span-2 flex justify-end self-end pb-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removePoItem(idx)}
-                        disabled={poItems.length === 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                    <div className="grid grid-cols-3 gap-2 items-end">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">單價</p>
+                        <Input
+                          type="number"
+                          value={item.unitPrice}
+                          onChange={(e) => updatePoItem(idx, "unitPrice", Number(e.target.value))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">數量</p>
+                        <Input
+                          type="number"
+                          value={item.qty}
+                          onChange={(e) => updatePoItem(idx, "qty", Number(e.target.value))}
+                          className="h-8 text-sm"
+                          min={1}
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePoItem(idx)}
+                          disabled={poItems.length === 1}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

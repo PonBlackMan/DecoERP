@@ -20,6 +20,7 @@ import {
   getQuotes, createQuote, confirmQuote,
   STATUS_LABELS, STATUS_COLORS, QuoteSummaryDto, QuoteItemInput
 } from "@/lib/quotes";
+import { getCases, STAGE_LABELS as CASE_STAGE_LABELS } from "@/lib/cases";
 
 const CATEGORIES = ["木作", "油漆", "水電", "泥作", "鋁窗", "鐵件", "地坪", "廚房設備", "衛浴設備", "家具", "燈具", "其他"];
 const SPACES = ["客廳", "主臥", "次臥", "廚房", "衛浴", "玄關", "書房", "陽台", "公共空間"];
@@ -39,6 +40,13 @@ export default function QuotesPage() {
     queryKey: ["quotes"],
     queryFn: () => getQuotes(),
   });
+
+  const { data: casesData } = useQuery({
+    queryKey: ["cases-for-quote-select"],
+    queryFn: () => getCases({ pageSize: 100 }),
+  });
+
+  const selectedCase = casesData?.items.find((c) => c.id === caseId);
 
   const createMutation = useMutation({
     mutationFn: () => createQuote({
@@ -70,7 +78,7 @@ export default function QuotesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">報價管理</h1>
           <p className="text-sm text-muted-foreground mt-1">逐項報價，支援多版本，確認後轉合約金額</p>
@@ -151,8 +159,29 @@ export default function QuotesPage() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4 py-2 pr-1">
             <div className="space-y-2">
-              <Label>案件 ID *</Label>
-              <Input value={caseId} onChange={(e) => setCaseId(e.target.value)} placeholder="貼入案件 UUID" />
+              <Label>案件 *</Label>
+              <Select value={caseId} onValueChange={(v) => v && setCaseId(v)}>
+                <SelectTrigger>
+                  <SelectValue>
+                    {selectedCase
+                      ? `${selectedCase.clientName}　${CASE_STAGE_LABELS[selectedCase.stage]}`
+                      : "選擇案件"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {casesData?.items.filter((c) => c.stage !== "Abandoned").map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="font-medium">{c.clientName}</span>
+                      <span className="ml-2 text-muted-foreground text-xs">{CASE_STAGE_LABELS[c.stage]}</span>
+                    </SelectItem>
+                  ))}
+                  {!casesData?.items.length && (
+                    <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                      尚無案件資料
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>備註</Label>
@@ -169,7 +198,7 @@ export default function QuotesPage() {
               {items.map((item, i) => (
                 <div key={i} className="border rounded-md p-3 space-y-2">
                   {/* Row 1: Space / Category / Item Name */}
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <Select value={item.spaceName} onValueChange={(v) => updateItem(i, "spaceName", v)}>
                       <SelectTrigger className="text-sm">
                         <SelectValue placeholder="空間" />

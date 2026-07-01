@@ -87,7 +87,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">工程專案</h1>
           <p className="text-sm text-muted-foreground mt-1">管理施工中工程、進度與驗收</p>
@@ -98,7 +98,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Status Tab Filter */}
-      <div className="flex gap-1 border-b">
+      <div className="flex flex-wrap gap-1 border-b">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
@@ -203,7 +203,7 @@ export default function ProjectsPage() {
             <DialogTitle>新增工程</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>工程編號 *</Label>
                 <Input
@@ -230,7 +230,7 @@ export default function ProjectsPage() {
                 placeholder="台北市信義區室內裝修工程"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>業主姓名 *</Label>
                 <Input
@@ -256,7 +256,7 @@ export default function ProjectsPage() {
                 placeholder="台北市信義區..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>開始日期</Label>
                 <Input

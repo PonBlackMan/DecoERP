@@ -81,7 +81,7 @@ export default function FinancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">財務管理</h1>
           <p className="text-sm text-muted-foreground mt-1">傳票與科目管理</p>
@@ -208,7 +208,7 @@ export default function FinancePage() {
             <DialogTitle>新增傳票</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4 py-2 pr-1">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>傳票號 *</Label>
                 <Input
@@ -245,14 +245,14 @@ export default function FinancePage() {
               </div>
               <div className="space-y-2">
                 {lines.map((line, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-start border rounded-md p-2">
-                    <div className="col-span-4 space-y-1">
+                  <div key={idx} className="border rounded-md p-2 space-y-2">
+                    <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">科目 *</p>
                       <Select
                         value={line.accountId}
                         onValueChange={(v) => v && updateLine(idx, "accountId", v as string)}
                       >
-                        <SelectTrigger className="h-8 text-sm">
+                        <SelectTrigger className="text-sm">
                           <SelectValue placeholder="選擇科目" />
                         </SelectTrigger>
                         <SelectContent>
@@ -264,43 +264,45 @@ export default function FinancePage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2 space-y-1">
-                      <p className="text-xs text-muted-foreground">借方金額</p>
-                      <Input
-                        type="number"
-                        value={line.debitAmount}
-                        onChange={(e) => updateLine(idx, "debitAmount", Number(e.target.value))}
-                        className="h-8 text-sm"
-                        min={0}
-                      />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">借方金額</p>
+                        <Input
+                          type="number"
+                          value={line.debitAmount}
+                          onChange={(e) => updateLine(idx, "debitAmount", Number(e.target.value))}
+                          className="h-8 text-sm"
+                          min={0}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">貸方金額</p>
+                        <Input
+                          type="number"
+                          value={line.creditAmount}
+                          onChange={(e) => updateLine(idx, "creditAmount", Number(e.target.value))}
+                          className="h-8 text-sm"
+                          min={0}
+                        />
+                      </div>
                     </div>
-                    <div className="col-span-2 space-y-1">
-                      <p className="text-xs text-muted-foreground">貸方金額</p>
-                      <Input
-                        type="number"
-                        value={line.creditAmount}
-                        onChange={(e) => updateLine(idx, "creditAmount", Number(e.target.value))}
-                        className="h-8 text-sm"
-                        min={0}
-                      />
-                    </div>
-                    <div className="col-span-3 space-y-1">
-                      <p className="text-xs text-muted-foreground">說明</p>
-                      <Input
-                        value={line.description ?? ""}
-                        onChange={(e) => updateLine(idx, "description", e.target.value)}
-                        className="h-8 text-sm"
-                        placeholder="備註"
-                      />
-                    </div>
-                    <div className="col-span-1 flex justify-end self-end pb-1">
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs text-muted-foreground">說明</p>
+                        <Input
+                          value={line.description ?? ""}
+                          onChange={(e) => updateLine(idx, "description", e.target.value)}
+                          className="h-8 text-sm"
+                          placeholder="備註"
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => removeLine(idx)}
                         disabled={lines.length === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 mb-0.5"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

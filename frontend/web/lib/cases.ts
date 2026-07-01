@@ -38,7 +38,7 @@ export const STAGE_COLORS: Record<CaseStage, string> = {
   Abandoned: "bg-gray-100 text-gray-600",
 };
 
-export async function getCases(params?: { stage?: CaseStage; search?: string; page?: number }) {
+export async function getCases(params?: { stage?: CaseStage; search?: string; page?: number; pageSize?: number }) {
   const { data } = await api.get<PagedResult<CaseDto>>("/api/cases", { params });
   return data;
 }

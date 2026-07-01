@@ -13,7 +13,11 @@ const iconMap = {
   ShoppingCart, Banknote, Users,
 } as Record<string, React.ComponentType<{ className?: string }>>;
 
-export function SidebarNav() {
+interface SidebarNavProps {
+  onNavigate?: () => void;
+}
+
+export function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
@@ -25,6 +29,7 @@ export function SidebarNav() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
               active
