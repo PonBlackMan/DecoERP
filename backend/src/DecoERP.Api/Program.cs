@@ -43,7 +43,10 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(',') ?? ["http://localhost:3000"])
+        policy.WithOrigins(
+                  builder.Configuration["AllowedOrigins"]?
+                      .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                  ?? ["http://localhost:3000"])
               .AllowAnyHeader()
               .AllowAnyMethod()));
 
