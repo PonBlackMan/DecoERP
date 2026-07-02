@@ -14,6 +14,7 @@ public class GetAccountsQueryHandler(IDecoDbContext db, ICurrentUserService curr
     public async Task<List<AccountDto>> Handle(GetAccountsQuery request, CancellationToken cancellationToken)
     {
         return await db.Accounts
+            .AsNoTracking()
             .Where(a => a.TenantId == currentUser.TenantId)
             .OrderBy(a => a.Code)
             .Select(a => new AccountDto(a.Id, a.Code, a.Name, a.Type.ToString()))

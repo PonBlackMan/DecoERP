@@ -29,6 +29,7 @@ public class GetEmployeesQueryHandler(IDecoDbContext db, ICurrentUserService cur
     public async Task<PagedResult<EmployeeDto>> Handle(GetEmployeesQuery request, CancellationToken cancellationToken)
     {
         var query = db.Employees
+            .AsNoTracking()
             .Where(e => e.TenantId == currentUser.TenantId)
             .AsQueryable();
 

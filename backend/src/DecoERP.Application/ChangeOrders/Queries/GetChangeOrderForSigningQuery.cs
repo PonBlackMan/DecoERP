@@ -30,6 +30,7 @@ public class GetChangeOrderForSigningQueryHandler(IDecoDbContext db)
     public async Task<ChangeOrderSigningDto?> Handle(GetChangeOrderForSigningQuery request, CancellationToken cancellationToken)
     {
         var entity = await db.ChangeOrders
+            .AsNoTracking()
             .Include(co => co.Project)
             .Include(co => co.Items)
             .Include(co => co.Signoffs)

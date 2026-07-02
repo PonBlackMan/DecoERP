@@ -26,6 +26,7 @@ public class GetQuotesQueryHandler(IDecoDbContext db, ICurrentUserService curren
     public async Task<PagedResult<QuoteSummaryDto>> Handle(GetQuotesQuery request, CancellationToken cancellationToken)
     {
         var query = db.Quotes
+            .AsNoTracking()
             .Where(q => q.TenantId == currentUser.TenantId)
             .Include(q => q.Case)
             .AsQueryable();

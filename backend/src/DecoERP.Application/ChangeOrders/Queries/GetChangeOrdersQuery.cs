@@ -28,6 +28,7 @@ public class GetChangeOrdersQueryHandler(IDecoDbContext db, ICurrentUserService 
     public async Task<PagedResult<ChangeOrderDto>> Handle(GetChangeOrdersQuery request, CancellationToken cancellationToken)
     {
         var query = db.ChangeOrders
+            .AsNoTracking()
             .Where(co => co.TenantId == currentUser.TenantId)
             .Include(co => co.Project)
             .AsQueryable();

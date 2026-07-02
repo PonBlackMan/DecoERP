@@ -26,6 +26,7 @@ public class GetVendorsQueryHandler(IDecoDbContext db, ICurrentUserService curre
     public async Task<PagedResult<VendorDto>> Handle(GetVendorsQuery request, CancellationToken cancellationToken)
     {
         var query = db.Vendors
+            .AsNoTracking()
             .Where(v => v.TenantId == currentUser.TenantId)
             .AsQueryable();
 

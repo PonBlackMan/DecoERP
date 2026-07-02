@@ -15,7 +15,8 @@ public static class DependencyInjection
     {
         services.AddDbContext<DecoDbContext>(options =>
             options
-                .UseNpgsql(config.GetConnectionString("DefaultConnection"))
+                .UseNpgsql(config.GetConnectionString("DefaultConnection"), npgsql =>
+                    npgsql.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null))
                 .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
         services.AddScoped<IDecoDbContext>(provider => provider.GetRequiredService<DecoDbContext>());

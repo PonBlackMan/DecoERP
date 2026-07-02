@@ -26,6 +26,7 @@ public class GetPurchaseOrdersQueryHandler(IDecoDbContext db, ICurrentUserServic
     public async Task<PagedResult<PurchaseOrderDto>> Handle(GetPurchaseOrdersQuery request, CancellationToken cancellationToken)
     {
         var query = db.PurchaseOrders
+            .AsNoTracking()
             .Where(po => po.TenantId == currentUser.TenantId)
             .Include(po => po.Vendor)
             .AsQueryable();

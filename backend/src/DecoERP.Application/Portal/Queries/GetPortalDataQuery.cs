@@ -1,6 +1,7 @@
 using DecoERP.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DecoERP.Application.Portal.Queries;
 
@@ -74,74 +75,91 @@ public record PortalDataDto(
 
 public record GetPortalDataQuery(string Token, string PhoneLastFour) : IRequest<(PortalAccessResult Result, PortalDataDto? Data)>;
 
-public class GetPortalDataQueryHandler(IDecoDbContext db)
+public class GetPortalDataQueryHandler(IDecoDbContext db, IServiceScopeFactory scopeFactory)
     : IRequestHandler<GetPortalDataQuery, (PortalAccessResult Result, PortalDataDto? Data)>
 {
+    // Each sub-query below runs against its own short-lived DbContext (via a fresh DI scope) so they
+    // can execute concurrently — a single DbContext instance cannot run overlapping operations.
+    private async Task<T> RunAsync<T>(Func<IDecoDbContext, Task<T>> query, CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var scopedDb = scope.ServiceProvider.GetRequiredService<IDecoDbContext>();
+        return await query(scopedDb);
+    }
+
     public async Task<(PortalAccessResult Result, PortalDataDto? Data)> Handle(GetPortalDataQuery request, CancellationToken cancellationToken)
     {
         var (result, project) = await PortalAccessGuard.ValidateAsync(db, request.Token, request.PhoneLastFour, cancellationToken);
         if (result != PortalAccessResult.Success || project is null) return (result, null);
 
-        var tasks = await db.ProjectTasks
-            .Where(t => t.ProjectId == project.Id)
+        var projectId = project.Id;
+
+        var tasksTask = RunAsync(d => d.ProjectTasks.AsNoTracking()
+            .Where(t => t.ProjectId == projectId)
             .OrderBy(t => t.PlannedStart)
             .Select(t => new PortalTaskDto(t.Name, t.PlannedStart, t.PlannedEnd, t.ActualEnd, t.ProgressPct))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken), cancellationToken);
 
-        var siteReports = await db.SiteReports
-            .Where(s => s.ProjectId == project.Id)
+        var siteReportsTask = RunAsync(d => d.SiteReports.AsNoTracking()
+            .Where(s => s.ProjectId == projectId)
             .OrderByDescending(s => s.ReportDate)
             .Take(30)
             .Select(s => new PortalSiteReportDto(s.ReportDate, s.Weather, s.WorkersCount, s.Notes))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken), cancellationToken);
 
-        var issues = await db.Issues
-            .Where(i => i.ProjectId == project.Id)
+        var issuesTask = RunAsync(d => d.Issues.AsNoTracking()
+            .Where(i => i.ProjectId == projectId)
             .OrderByDescending(i => i.CreatedAt)
             .Select(i => new PortalIssueDto(i.Title, i.Description, i.Status, i.DueDate, i.Resolution))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken), cancellationToken);
 
-        var inspections = await db.Inspections
-            .Where(i => i.ProjectId == project.Id)
+        var inspectionsTask = RunAsync(d => d.Inspections.AsNoTracking()
+            .Where(i => i.ProjectId == projectId)
             .OrderByDescending(i => i.InspectionDate)
             .Select(i => new PortalInspectionDto(i.InspectionDate, i.Status, i.SignedBy, i.SignedAt, i.Notes))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken), cancellationToken);
 
-        var now = DateTime.UtcNow;
-        var changeOrders = await db.ChangeOrders
-            .Where(c => c.ProjectId == project.Id)
-            .Include(c => c.Items)
-            .Include(c => c.Signoffs)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync(cancellationToken);
+        var changeOrdersTask = RunAsync(async d =>
+        {
+            var now = DateTime.UtcNow;
+            var changeOrders = await d.ChangeOrders.AsNoTracking()
+                .Where(c => c.ProjectId == projectId)
+                .Include(c => c.Items)
+                .Include(c => c.Signoffs)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync(cancellationToken);
 
-        var changeOrderDtos = changeOrders
-            .Select(c => new PortalChangeOrderDto(
-                c.OrderNo,
-                c.Reason,
-                c.Status.ToString(),
-                c.TotalAmount,
-                c.SignToken != null && c.SignTokenExpiresAt > now && !c.Signoffs.Any(),
-                c.SignToken != null && c.SignTokenExpiresAt > now && !c.Signoffs.Any() ? c.SignToken : null,
-                c.Items.Select(i => new PortalChangeOrderItemDto(i.ItemName, i.Description, i.Amount)).ToList()))
-            .ToList();
+            return changeOrders
+                .Select(c => new PortalChangeOrderDto(
+                    c.OrderNo,
+                    c.Reason,
+                    c.Status.ToString(),
+                    c.TotalAmount,
+                    c.SignToken != null && c.SignTokenExpiresAt > now && !c.Signoffs.Any(),
+                    c.SignToken != null && c.SignTokenExpiresAt > now && !c.Signoffs.Any() ? c.SignToken : null,
+                    c.Items.Select(i => new PortalChangeOrderItemDto(i.ItemName, i.Description, i.Amount)).ToList()))
+                .ToList();
+        }, cancellationToken);
 
-        var invoices = await db.InvoicesReceivable
-            .Where(i => i.ProjectId == project.Id)
+        var invoicesTask = RunAsync(d => d.InvoicesReceivable.AsNoTracking()
+            .Where(i => i.ProjectId == projectId)
             .OrderBy(i => i.DueDate)
             .Select(i => new PortalInvoiceDto(i.InvoiceNo, i.Amount, i.PaidAmount, i.InvoiceDate, i.DueDate, i.Status.ToString()))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken), cancellationToken);
 
+        await Task.WhenAll(tasksTask, siteReportsTask, issuesTask, inspectionsTask, changeOrdersTask, invoicesTask);
+
+        var tasks = await tasksTask;
         var overallProgress = tasks.Count > 0 ? (int)Math.Round(tasks.Average(t => t.ProgressPct)) : 0;
 
         var dto = new PortalDataDto(
             new PortalProjectDto(project.Code, project.Name, project.Status.ToString(), project.OwnerName, project.Address, project.StartDate, project.EndDate, overallProgress),
             tasks,
-            siteReports,
-            issues,
-            inspections,
-            changeOrderDtos,
-            invoices);
+            await siteReportsTask,
+            await issuesTask,
+            await inspectionsTask,
+            await changeOrdersTask,
+            await invoicesTask);
 
         return (PortalAccessResult.Success, dto);
     }

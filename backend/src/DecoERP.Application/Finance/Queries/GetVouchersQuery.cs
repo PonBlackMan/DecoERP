@@ -21,6 +21,7 @@ public class GetVouchersQueryHandler(IDecoDbContext db, ICurrentUserService curr
     public async Task<PagedResult<VoucherDto>> Handle(GetVouchersQuery request, CancellationToken cancellationToken)
     {
         var query = db.Vouchers
+            .AsNoTracking()
             .Where(v => v.TenantId == currentUser.TenantId)
             .AsQueryable();
 
